@@ -11,10 +11,14 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
-func AddLabel(img *image.RGBA, x, y int, label string, col color.Color) {
+type Coords struct {
+	X, Y int
+}
+
+func AddLabel(img *image.RGBA, pos Coords, label string, col color.Color) {
 	point := fixed.Point26_6{
-		X: fixed.I(x),
-		Y: fixed.I(y),
+		X: fixed.I(pos.X),
+		Y: fixed.I(pos.Y),
 	}
 	d := &font.Drawer{
 		Dst:  img,
@@ -25,57 +29,57 @@ func AddLabel(img *image.RGBA, x, y int, label string, col color.Color) {
 	d.DrawString(label)
 }
 
-func DrawRectangle(img *image.RGBA, x1, y1, x2, y2 int, clr color.RGBA, thickness int, dotted bool) {
-	DrawLine(img, x1, y1, x2, y1, clr, thickness, dotted)
-	DrawLine(img, x2, y1, x2, y2, clr, thickness, dotted)
-	DrawLine(img, x2, y2, x1, y2, clr, thickness, dotted)
-	DrawLine(img, x1, y2, x1, y1, clr, thickness, dotted)
+func DrawRectangle(img *image.RGBA, p1, p2 Coords, clr color.RGBA, thickness int, dotted bool) {
+	DrawLine(img, p1, Coords{p2.X, p1.Y}, clr, thickness, dotted)
+	DrawLine(img, Coords{p2.X, p1.Y}, p2, clr, thickness, dotted)
+	DrawLine(img, p2, Coords{p1.X, p2.Y}, clr, thickness, dotted)
+	DrawLine(img, Coords{p1.X, p2.Y}, p1, clr, thickness, dotted)
 	corner := color.RGBA{68, 68, 68, 255}
-	DrawFilledCircle(img, corner, thickness/2, Coords{x1, y1})
-	DrawFilledCircle(img, corner, thickness/2, Coords{x2, y1})
-	DrawFilledCircle(img, corner, thickness/2, Coords{x2, y2})
-	DrawFilledCircle(img, corner, thickness/2, Coords{x1, y2})
+	DrawFilledCircle(img, corner, thickness/2, p1)
+	DrawFilledCircle(img, corner, thickness/2, Coords{p2.X, p1.Y})
+	DrawFilledCircle(img, corner, thickness/2, p2)
+	DrawFilledCircle(img, corner, thickness/2, Coords{p1.X, p2.Y})
 }
 
-func DrawRotatedRectangle(img *image.RGBA, x1, y1, x2, y2 int, theta float64, clr color.RGBA, thickness int, dotted bool) {
-	sqr := RotateRectangle(x1, y1, x2, y2, theta)
+func DrawRotatedRectangle(img *image.RGBA, p1, p2 Coords, theta float64, clr color.RGBA, thickness int, dotted bool) {
+	sqr := RotateRectangle(p1, p2, theta)
 
-	DrawLine(img, sqr[0][0], sqr[0][1], sqr[1][0], sqr[1][1], clr, thickness, dotted)
-	DrawLine(img, sqr[1][0], sqr[1][1], sqr[2][0], sqr[2][1], clr, thickness, dotted)
-	DrawLine(img, sqr[2][0], sqr[2][1], sqr[3][0], sqr[3][1], clr, thickness, dotted)
-	DrawLine(img, sqr[3][0], sqr[3][1], sqr[0][0], sqr[0][1], clr, thickness, dotted)
+	DrawLine(img, sqr[0], sqr[1], clr, thickness, dotted)
+	DrawLine(img, sqr[1], sqr[2], clr, thickness, dotted)
+	DrawLine(img, sqr[2], sqr[3], clr, thickness, dotted)
+	DrawLine(img, sqr[3], sqr[0], clr, thickness, dotted)
 	fmt.Println(sqr[0], sqr[1], sqr[2], sqr[3])
 	corner := color.RGBA{68, 68, 68, 255}
-	DrawFilledCircle(img, corner, thickness/2, Coords{sqr[0][0], sqr[0][1]})
-	DrawFilledCircle(img, corner, thickness/2, Coords{sqr[1][0], sqr[1][1]})
-	DrawFilledCircle(img, corner, thickness/2, Coords{sqr[2][0], sqr[2][1]})
-	DrawFilledCircle(img, corner, thickness/2, Coords{sqr[3][0], sqr[3][1]})
+	DrawFilledCircle(img, corner, thickness/2, sqr[0])
+	DrawFilledCircle(img, corner, thickness/2, sqr[1])
+	DrawFilledCircle(img, corner, thickness/2, sqr[2])
+	DrawFilledCircle(img, corner, thickness/2, sqr[3])
 }
 
-// Expects x1,y1 to be top left and x2,y2 to be bottom right
-func RotateRectangle(x1, y1, x2, y2 int, theta float64) [4][2]int {
-	center := Coords{(x1 + x2) / 2, (y1 + y2) / 2}
+// Expects p1 to be top left and p2 to be bottom right
+func RotateRectangle(p1, p2 Coords, theta float64) [4]Coords {
+	center := Coords{(p1.X + p2.X) / 2, (p1.Y + p2.Y) / 2}
 
-	abcd := [4][2]int{
-		{x1, y1},
-		{x2, y1},
-		{x2, y2},
-		{x1, y2},
+	abcd := [4]Coords{
+		p1,
+		{p2.X, p1.Y},
+		p2,
+		{p1.X, p2.Y},
 	}
-	abcd[0][0], abcd[0][1] = rotatePoint(abcd[0][0], abcd[0][1], center.X, center.Y, theta)
-	abcd[1][0], abcd[1][1] = rotatePoint(abcd[1][0], abcd[1][1], center.X, center.Y, theta)
-	abcd[2][0], abcd[2][1] = rotatePoint(abcd[2][0], abcd[2][1], center.X, center.Y, theta)
-	abcd[3][0], abcd[3][1] = rotatePoint(abcd[3][0], abcd[3][1], center.X, center.Y, theta)
-	return [4][2]int{abcd[0], abcd[1], abcd[2], abcd[3]}
+	abcd[0] = RotatePoint(abcd[0], center, theta)
+	abcd[1] = RotatePoint(abcd[1], center, theta)
+	abcd[2] = RotatePoint(abcd[2], center, theta)
+	abcd[3] = RotatePoint(abcd[3], center, theta)
+	return abcd
 }
 
-func DrawTriangle(img *image.RGBA, x1, y1, x2, y2, x3, y3 int, clr color.RGBA, thickness int, dotted bool) {
-	DrawLine(img, x1, y1, x2, y2, clr, thickness, dotted)
-	DrawLine(img, x2, y2, x3, y3, clr, thickness, dotted)
-	DrawLine(img, x3, y3, x1, y1, clr, thickness, dotted)
+func DrawTriangle(img *image.RGBA, p1, p2, p3 Coords, clr color.RGBA, thickness int, dotted bool) {
+	DrawLine(img, p1, p2, clr, thickness, dotted)
+	DrawLine(img, p2, p3, clr, thickness, dotted)
+	DrawLine(img, p3, p1, clr, thickness, dotted)
 }
 
-func DrawArc(img *image.RGBA, x, y, radius int, startAngle, endAngle float64, clr color.RGBA, thickness int) {
+func DrawArc(img *image.RGBA, center Coords, radius int, startAngle, endAngle float64, clr color.RGBA, thickness int) {
 	for startAngle < 2*math.Pi {
 		startAngle += 2 * math.Pi
 	}
@@ -97,8 +101,8 @@ func DrawArc(img *image.RGBA, x, y, radius int, startAngle, endAngle float64, cl
 		ex := .25 * float64(radius) * (math.Cos(i))
 		ey := .25 * float64(radius) * (math.Sin(2*math.Pi - i))
 		eyUpper := .25 * float64(radius) * (math.Sin(i))
-		rx, ry := int(ex)+x, int(ey)+y
-		ryUpper := int(eyUpper) + y
+		rx, ry := int(ex)+center.X, int(ey)+center.Y
+		ryUpper := int(eyUpper) + center.Y
 		if rx > img.Bounds().Dx() {
 			rx = img.Bounds().Dx()
 		}
@@ -111,20 +115,19 @@ func DrawArc(img *image.RGBA, x, y, radius int, startAngle, endAngle float64, cl
 	}
 }
 
-func rotatePoint(x, y, cx, cy int, theta float64) (int, int) {
+func RotatePoint(p, center Coords, theta float64) Coords {
 	// Translate point to origin
-	x -= cx
-	y -= cy
+	x := p.X - center.X
+	y := p.Y - center.Y
 	nx := float64(x)*math.Cos(theta) - float64(y)*math.Sin(theta)
 	ny := float64(x)*math.Sin(theta) + float64(y)*math.Cos(theta)
-	return int(nx) + cx, int(ny) + cy
+	return Coords{int(nx) + center.X, int(ny) + center.Y}
 }
 
-func DrawLine(img *image.RGBA, x1, y1, x2, y2 int, color color.RGBA, thickness int, dotted bool) {
-	DrawFilledCircle(img, color, thickness/2, Coords{x1, y1})
-	if x2 < x1 {
-		x1, x2 = x2, x1
-		y1, y2 = y2, y1
+func DrawLine(img *image.RGBA, p1, p2 Coords, color color.RGBA, thickness int, dotted bool) {
+	DrawFilledCircle(img, color, thickness/2, p1)
+	if p2.X < p1.X {
+		p1, p2 = p2, p1
 	}
 	var slope float64
 	var draws int
@@ -133,18 +136,18 @@ func DrawLine(img *image.RGBA, x1, y1, x2, y2 int, color color.RGBA, thickness i
 		diff, diffy = 7., 7.
 	}
 
-	if x2 == x1 {
-		if y2 < y1 {
-			y1, y2 = y2, y1
+	if p2.X == p1.X {
+		if p2.Y < p1.Y {
+			p1.Y, p2.Y = p2.Y, p1.Y
 		}
-		for y := float64(y1); y <= float64(y2); y += diffy {
-			DrawFilledCircle(img, color, thickness/2, Coords{x1, int(y)})
+		for y := float64(p1.Y); y <= float64(p2.Y); y += diffy {
+			DrawFilledCircle(img, color, thickness/2, Coords{p1.X, int(y)})
 			draws++
 		}
 	} else {
-		slope = float64(y2-y1) / float64(x2-x1)
-		for x := float64(x1); x <= float64(x2); x += diff {
-			y := int(slope*float64(x-float64(x1))) + y1
+		slope = float64(p2.Y-p1.Y) / float64(p2.X-p1.X)
+		for x := float64(p1.X); x <= float64(p2.X); x += diff {
+			y := int(slope*float64(x-float64(p1.X))) + p1.Y
 			DrawFilledCircle(img, color, thickness/2, Coords{int(x), y})
 			draws++
 		}
@@ -189,10 +192,6 @@ func DrawCircle(img *image.RGBA, clr color.RGBA, radius int, center Coords) {
 		}
 		fmt.Println(yBoundsNext, yBoundsPrev, ok, ok2)
 	}
-}
-
-type Coords struct {
-	X, Y int
 }
 
 func circleBounds(img *image.RGBA, radius int, center Coords) map[int]*Coords {
