@@ -1,7 +1,6 @@
 package paint
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"math"
@@ -48,7 +47,6 @@ func DrawRotatedRectangle(img *image.RGBA, p1, p2 Coords, theta float64, clr col
 	DrawLine(img, sqr[1], sqr[2], clr, thickness, dotted)
 	DrawLine(img, sqr[2], sqr[3], clr, thickness, dotted)
 	DrawLine(img, sqr[3], sqr[0], clr, thickness, dotted)
-	fmt.Println(sqr[0], sqr[1], sqr[2], sqr[3])
 	corner := color.RGBA{68, 68, 68, 255}
 	DrawFilledCircle(img, corner, thickness/2, sqr[0])
 	DrawFilledCircle(img, corner, thickness/2, sqr[1])
@@ -97,7 +95,6 @@ func DrawArc(img *image.RGBA, center Coords, radius int, startAngle, endAngle fl
 	}
 	bounds := make(map[int]*Coords)
 	for i := startAngle; i < endAngle; i += math.Pi / (float64(radius)) { // tbd
-		fmt.Println(i)
 		ex := .25 * float64(radius) * (math.Cos(i))
 		ey := .25 * float64(radius) * (math.Sin(2*math.Pi - i))
 		eyUpper := .25 * float64(radius) * (math.Sin(i))
@@ -152,7 +149,6 @@ func DrawLine(img *image.RGBA, p1, p2 Coords, color color.RGBA, thickness int, d
 			draws++
 		}
 	}
-	fmt.Println("draws:", draws)
 }
 
 func DrawFilledCircle(img *image.RGBA, color color.RGBA, radius int, center Coords) {
@@ -190,7 +186,6 @@ func DrawCircle(img *image.RGBA, clr color.RGBA, radius int, center Coords) {
 		if ok && !ok2 {
 			img.Set(x, yBounds.X, color.RGBA{})
 		}
-		fmt.Println(yBoundsNext, yBoundsPrev, ok, ok2)
 	}
 }
 
