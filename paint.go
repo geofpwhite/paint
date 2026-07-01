@@ -162,8 +162,6 @@ func DrawFilledCircle(img *image.RGBA, color color.RGBA, radius int, center Coor
 
 func DrawCircle(img *image.RGBA, clr color.RGBA, radius int, center Coords) {
 	bounds := circleBounds(img, radius, center)
-	// DrawFilledCircle(img, clr, radius, center)
-	// DrawFilledCircle(img, color.RGBA{}, radius-1, center)
 	for x, yBounds := range bounds {
 		yBoundsNext, ok := bounds[x+1]
 		yBoundsPrev, ok2 := bounds[x-1]
@@ -191,10 +189,10 @@ func DrawCircle(img *image.RGBA, clr color.RGBA, radius int, center Coords) {
 
 func circleBounds(img *image.RGBA, radius int, center Coords) map[int]*Coords {
 	bounds := make(map[int]*Coords)
-	for i := 0.; i < math.Pi; i += math.Pi / (float64(radius)) { // tbd
-		ex := .25 * float64(radius) * (math.Cos(i))
-		ey := .25 * float64(radius) * (math.Sin(2*math.Pi - i))
-		eyUpper := .25 * float64(radius) * (math.Sin(i))
+	for i := 0.; i < math.Pi; i += math.Pi / (5. * float64(radius)) { // TODO: figure out calculating the right increment for i based on radius
+		ex := float64(radius) * (math.Cos(i))
+		ey := float64(radius) * (math.Sin(2*math.Pi - i))
+		eyUpper := float64(radius) * (math.Sin(i))
 		rx, ry := int(ex)+center.X, int(ey)+center.Y
 		ryUpper := int(eyUpper) + center.Y
 		if rx > img.Bounds().Dx() {
